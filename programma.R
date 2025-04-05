@@ -26,12 +26,13 @@ sl.by.b <- split(kordat$Slope, kordat$b)
 cat("\n\n'Slope' sagrupēts pēc b faktora (sl.by.b):\n")
 print(sl.by.b)
 
-# 6. Izveido "Average" kolonnu
-kordat$Average <- rowMeans(kordat[, c("Slope", "Intercept", "adj.r.squared")])
+# 6. Izveido "Average" kolonnu ar apply
+kordat$Average <- apply(kordat[ , c("Slope", "Intercept", "adj.r.squared")], 1, mean)
 
-# 7. Standartnovirze pa f faktora līmeņiem visām kolonnām
+# 7. Standartnovirze pa f faktora līmeņiem ar tapply+sapply
 cat("\n\nStandartnovirzes pa f faktora līmeņiem:\n")
-print(aggregate(. ~ f_column, data = kordat[ , sapply(kordat, is.numeric)], FUN = sd))
+std_by_f <- sapply(kordat[ , sapply(kordat, is.numeric)], function(col) tapply(col, f_column, sd))
+print(std_by_f)
 
 # 8. Filtrē prockordat pēc adj.r.squared
 if (any(kordat$adj.r.squared > 0)) {
@@ -40,8 +41,9 @@ if (any(kordat$adj.r.squared > 0)) {
   prockordat <- subset(kordat, adj.r.squared > -0.3)
 }
 
-# 9. Pārrēķina Slope pēc 1 - 1/k
-prockordat$Slope <- 1 - 1 / prockordat$Slope
+# 9. Pārrēķina Slope pēc funkcijas
+f1 <- function(k) { 1 - 1 / k }
+prockordat$Slope <- sapply(prockordat$Slope, f1)
 
 # 10. Izdrukā prockordat
 cat("\n\nDatu satvars 'prockordat' (filtrēts un apstrādāts):\n")
@@ -53,9 +55,9 @@ svg("scatter.svg")
 plot(kordat$MAD, kordat$Average, xlab = "MAD", ylab = "Average", main = "Izkliedes grafiks: MAD vs Average")
 dev.off()
 
-# 13. Kastīšu grafiks
+# 13. Kastīšu grafiks ar split
 svg("boxplot.svg")
-boxplot(Intercept ~ f_column, data = kordat, main = "Kastīšu grafiks: Intercept pēc f", xlab = "f faktors", ylab = "Intercept")
+boxplot(split(kordat$Intercept, f_column), main = "Kastīšu grafiks: Intercept pēc f", xlab = "f faktors", ylab = "Intercept")
 dev.off()
 
 # Papilduzdevums: biežāk sastopamais līmenis no rindu nosaukumiem
